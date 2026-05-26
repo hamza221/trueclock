@@ -34,3 +34,7 @@ npm run build   # regenerates public/data/* from data-src/, then vite build
 Vite · Svelte · TypeScript · MapLibre GL · Luxon · `tz-lookup` ·
 Timezone Boundary Builder polygons (simplified) · OSM Nominatim ·
 ipapi.co (fallback).
+
+## License
+
+[The Unlicense](LICENSE) — public domain.
