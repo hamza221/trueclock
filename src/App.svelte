@@ -4,8 +4,9 @@
   import WorldMap from './components/WorldMap.svelte';
   import DateSlider from './components/DateSlider.svelte';
   import Leaderboard from './components/Leaderboard.svelte';
+  import CitySearch from './components/CitySearch.svelte';
   import { resolveLocation, tzFromLatLon, type LocationFix } from './lib/location';
-  import { reverseGeocode, type PlaceName } from './lib/geocode';
+  import { reverseGeocode, type PlaceHit, type PlaceName } from './lib/geocode';
 
   let fix: LocationFix | undefined;
   let zone: string | undefined;
@@ -61,6 +62,18 @@
     at = d;
   }
 
+  function onCityPick(hit: PlaceHit) {
+    fix = { lat: hit.lat, lon: hit.lon, source: 'manual' };
+    zone = tzFromLatLon(hit.lat, hit.lon);
+    place = {
+      city: hit.name,
+      region: hit.region,
+      country: hit.country,
+      display: hit.display,
+    };
+    error = undefined;
+  }
+
   function resumeLive() {
     pinned = false;
     at = new Date();
@@ -76,13 +89,16 @@
 <main>
   <nav class="topnav">
     <div class="brand mono">trueclock</div>
-    <div class="links">
-      <a href="#about">About</a>
-      <a
-        href="https://github.com/hamza221/trueclock"
-        target="_blank"
-        rel="noopener">GitHub</a
-      >
+    <div class="nav-right">
+      <CitySearch onPick={onCityPick} />
+      <div class="links">
+        <a href="#about">About</a>
+        <a
+          href="https://github.com/hamza221/trueclock"
+          target="_blank"
+          rel="noopener">GitHub</a
+        >
+      </div>
     </div>
   </nav>
 
@@ -181,10 +197,22 @@
     letter-spacing: 0.04em;
   }
 
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
   .links {
     display: flex;
     gap: 16px;
     font-size: 13px;
+  }
+
+  @media (max-width: 540px) {
+    .links {
+      display: none;
+    }
   }
 
   .links a {
