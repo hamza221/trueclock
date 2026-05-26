@@ -49,8 +49,30 @@
 
   $: tzCenterLonDeg = civilOffsetH * 15;
   $: lonDiffDeg = lon - tzCenterLonDeg;
-  $: tzCenterX = 180 + (tzCenterLonDeg / 180) * 160;
-  $: userX = 180 + (lon / 180) * 160;
+
+  // Longitude diagram — focus the view around the user and the TZ center
+  // with enough padding to show the timezone band (±7.5°) and the labels.
+  const LONVB_W = 600;
+  const LONVB_H = 140;
+  const LONVB_PAD_X = 60;
+  $: lonMin = Math.min(lon, tzCenterLonDeg) - 12;
+  $: lonMax = Math.max(lon, tzCenterLonDeg) + 12;
+  $: lonRange = Math.max(30, lonMax - lonMin);
+  function lonToX(
+    deg: number,
+    min: number,
+    range: number,
+    padX: number,
+    vbW: number,
+  ): number {
+    return padX + ((deg - min) / range) * (vbW - 2 * padX);
+  }
+  $: tzCenterX = lonToX(tzCenterLonDeg, lonMin, lonRange, LONVB_PAD_X, LONVB_W);
+  $: userX = lonToX(lon, lonMin, lonRange, LONVB_PAD_X, LONVB_W);
+  $: bandLeftX = lonToX(tzCenterLonDeg - 7.5, lonMin, lonRange, LONVB_PAD_X, LONVB_W);
+  $: bandRightX = lonToX(tzCenterLonDeg + 7.5, lonMin, lonRange, LONVB_PAD_X, LONVB_W);
+  // If user and TZ markers are close together, stagger their bottom labels
+  $: labelsClose = Math.abs(userX - tzCenterX) < 90;
 
   $: pos = solarPosition(at, lat, lon);
   $: belowHorizon = pos.elevationDeg < 0;
@@ -277,30 +299,36 @@
     <span class="dim">({Math.abs(lonDiffDeg).toFixed(1)}° {lonDiffDeg < 0 ? 'west' : 'east'})</span>
   </div>
 
-  <svg viewBox="0 0 360 100" class="lon-diagram" role="img" aria-label="Longitude relative to timezone center">
-    <!-- timezone band -->
-    <rect x={tzCenterX - 24} y="30" width="48" height="36" fill="rgba(90,200,250,0.15)" stroke="rgba(90,200,250,0.45)" />
-    <line x1={tzCenterX} y1="22" x2={tzCenterX} y2="72" stroke="#5ac8fa" stroke-dasharray="3 3" />
-    <text x={tzCenterX - 24} y="22" class="tiny dim">{(tzCenterLonDeg - 7.5).toFixed(1)}°E</text>
-    <text x={tzCenterX} y="22" text-anchor="middle" class="tiny">{tzCenterLonDeg.toFixed(0)}°E</text>
-    <text x={tzCenterX + 24} y="22" text-anchor="end" class="tiny dim">{(tzCenterLonDeg + 7.5).toFixed(1)}°E</text>
-    <text x={tzCenterX} y="86" text-anchor="middle" class="tiny dim">{fmtOffset(civilOffsetH)}</text>
-    <text x={tzCenterX} y="98" text-anchor="middle" class="lbl cool">Timezone center</text>
-
-    <!-- user marker -->
-    <line x1={userX} y1="26" x2={userX} y2="70" stroke="#ffb454" stroke-width="2" />
-    <text x={userX} y="98" text-anchor="middle" class="lbl accent">Your longitude</text>
-
-    <!-- arrow -->
-    <line x1={userX} y1="48" x2={tzCenterX} y2="48" stroke="rgba(230,237,243,0.55)" stroke-width="1" marker-end="url(#arrowhead)" />
-    <text x={(userX + tzCenterX) / 2} y="42" text-anchor="middle" class="tiny">
-      {Math.abs(lonDiffDeg).toFixed(1)}° {lonDiffDeg < 0 ? 'west' : 'east'}
-    </text>
+  <svg viewBox="0 0 {LONVB_W} {LONVB_H}" class="lon-diagram" role="img" aria-label="Longitude relative to timezone center">
     <defs>
-      <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
-        <path d="M0,0 L6,3 L0,6 z" fill="rgba(230,237,243,0.55)" />
+      <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0,0 L7,4 L0,8 z" fill="rgba(230,237,243,0.7)" />
       </marker>
     </defs>
+
+    <!-- axis -->
+    <line x1={LONVB_PAD_X - 10} y1="70" x2={LONVB_W - LONVB_PAD_X + 10} y2="70" stroke="rgba(140,170,220,0.18)" stroke-width="1" />
+
+    <!-- timezone band (15° wide) -->
+    <rect x={bandLeftX} y="46" width={bandRightX - bandLeftX} height="48" fill="rgba(90,200,250,0.12)" stroke="rgba(90,200,250,0.4)" />
+    <text x={bandLeftX} y="40" class="ax" text-anchor="middle">{(tzCenterLonDeg - 7.5).toFixed(1)}°</text>
+    <text x={bandRightX} y="40" class="ax" text-anchor="middle">{(tzCenterLonDeg + 7.5).toFixed(1)}°</text>
+
+    <!-- timezone center marker -->
+    <line x1={tzCenterX} y1="42" x2={tzCenterX} y2="98" stroke="#5ac8fa" stroke-width="2" stroke-dasharray="4 3" />
+    <text x={tzCenterX} y="116" text-anchor="middle" class="ax-strong cool">{tzCenterLonDeg.toFixed(0)}° · {fmtOffset(civilOffsetH)}</text>
+    <text x={tzCenterX} y="132" text-anchor="middle" class="lbl cool">Timezone center</text>
+
+    <!-- user marker -->
+    <line x1={userX} y1="42" x2={userX} y2="98" stroke="#ffb454" stroke-width="3" />
+    <text x={userX} y={labelsClose ? 14 : 116} text-anchor="middle" class="ax-strong accent">{fmtLon(lon)}</text>
+    <text x={userX} y={labelsClose ? 28 : 132} text-anchor="middle" class="lbl accent">Your longitude</text>
+
+    <!-- arrow between user and tz center -->
+    <line x1={userX} y1="70" x2={tzCenterX - (tzCenterX > userX ? 3 : -3)} y2="70" stroke="rgba(230,237,243,0.7)" stroke-width="1.2" marker-end="url(#arrowhead)" />
+    <text x={(userX + tzCenterX) / 2} y="62" text-anchor="middle" class="ax-strong">
+      {Math.abs(lonDiffDeg).toFixed(1)}° {lonDiffDeg < 0 ? 'west' : 'east'}
+    </text>
   </svg>
 
   <div class="footnote">
@@ -672,10 +700,50 @@
 
   .lon-diagram {
     width: 100%;
-    max-width: 480px;
+    max-width: 560px;
     height: auto;
     display: block;
     margin: 0 auto 12px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  .lon-diagram :global(text) {
+    font-size: 11px;
+    fill: var(--fg-dim);
+  }
+
+  .lon-diagram :global(.ax) {
+    fill: var(--fg-mute);
+    font-size: 10px;
+  }
+
+  .lon-diagram :global(.ax-strong) {
+    fill: var(--fg);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .lon-diagram :global(.ax-strong.cool) {
+    fill: var(--cool);
+  }
+
+  .lon-diagram :global(.ax-strong.accent) {
+    fill: var(--accent);
+  }
+
+  .lon-diagram :global(.lbl) {
+    font-size: 10px;
+    font-family: 'Inter', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .lon-diagram :global(.lbl.cool) {
+    fill: var(--cool);
+  }
+
+  .lon-diagram :global(.lbl.accent) {
+    fill: var(--accent);
   }
 
   .footnote {
