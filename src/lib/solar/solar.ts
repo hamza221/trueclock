@@ -84,3 +84,93 @@ export function formatDelta(deltaMin: number): string {
   if (h === 0) return `${m}m ${sign} the sun`;
   return `${h}h ${m}m ${sign} the sun`;
 }
+
+/**
+ * Solar declination, equation-of-time, and solar position (elevation +
+ * azimuth) for an observer. NOAA approximations; good to ~0.1° for elevation
+ * and well within a minute for EoT.
+ *
+ * Azimuth is reported clockwise from true north:
+ *   0° = N, 90° = E, 180° = S, 270° = W.
+ * Elevation is 0° at the horizon, 90° at zenith (negative below horizon).
+ */
+export interface SolarPosition {
+  elevationDeg: number;
+  azimuthDeg: number;
+}
+
+export function solarPosition(
+  at: Date,
+  lat: number,
+  lon: number,
+): SolarPosition {
+  const start = Date.UTC(at.getUTCFullYear(), 0, 0);
+  const dayOfYear = (at.getTime() - start) / 86_400_000;
+  const hourUTC =
+    at.getUTCHours() +
+    at.getUTCMinutes() / 60 +
+    at.getUTCSeconds() / 3600;
+  const gamma =
+    ((2 * Math.PI) / 365) * (dayOfYear - 1 + (hourUTC - 12) / 24);
+
+  // Declination (radians)
+  const decl =
+    0.006918 -
+    0.399912 * Math.cos(gamma) +
+    0.070257 * Math.sin(gamma) -
+    0.006758 * Math.cos(2 * gamma) +
+    0.000907 * Math.sin(2 * gamma) -
+    0.002697 * Math.cos(3 * gamma) +
+    0.00148 * Math.sin(3 * gamma);
+
+  // Equation of time (minutes) — same formula as above, kept inline so this
+  // function is self-contained.
+  const eot =
+    229.18 *
+    (0.000075 +
+      0.001868 * Math.cos(gamma) -
+      0.032077 * Math.sin(gamma) -
+      0.014615 * Math.cos(2 * gamma) -
+      0.040849 * Math.sin(2 * gamma));
+
+  // True solar time (minutes), then hour angle in degrees.
+  const utcMin = hourUTC * 60;
+  const tst = utcMin + eot + 4 * lon;
+  const haDeg = tst / 4 - 180;
+  const haRad = (haDeg * Math.PI) / 180;
+  const latRad = (lat * Math.PI) / 180;
+
+  const cosZen =
+    Math.sin(latRad) * Math.sin(decl) +
+    Math.cos(latRad) * Math.cos(decl) * Math.cos(haRad);
+  const clampedCosZen = Math.max(-1, Math.min(1, cosZen));
+  const zenRad = Math.acos(clampedCosZen);
+  const elevationDeg = 90 - (zenRad * 180) / Math.PI;
+
+  const sinZen = Math.sin(zenRad);
+  let azDeg: number;
+  if (sinZen < 1e-6) {
+    // sun straight overhead — azimuth is undefined; pick north
+    azDeg = 0;
+  } else {
+    const cosAz =
+      (Math.sin(decl) - Math.cos(zenRad) * Math.sin(latRad)) /
+      (sinZen * Math.cos(latRad));
+    const clampedCosAz = Math.max(-1, Math.min(1, cosAz));
+    const azBase = (Math.acos(clampedCosAz) * 180) / Math.PI;
+    // Before solar noon (negative hour angle) sun is in the east half;
+    // after, in the west half.
+    azDeg = haDeg > 0 ? 360 - azBase : azBase;
+  }
+
+  return { elevationDeg, azimuthDeg: azDeg };
+}
+
+/** Two-letter ISO country code → flag emoji. Returns '' if invalid. */
+export function flagEmoji(cc?: string): string {
+  if (!cc || cc.length !== 2 || !/^[a-zA-Z]{2}$/.test(cc)) return '';
+  const base = 0x1f1e6 - 'A'.charCodeAt(0);
+  return [...cc.toUpperCase()]
+    .map((c) => String.fromCodePoint(base + c.charCodeAt(0)))
+    .join('');
+}

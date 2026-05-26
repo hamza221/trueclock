@@ -4,6 +4,7 @@
   import WorldMap from './components/WorldMap.svelte';
   import DateSlider from './components/DateSlider.svelte';
   import Leaderboard from './components/Leaderboard.svelte';
+  import SolarDetail from './components/SolarDetail.svelte';
   import CitySearch from './components/CitySearch.svelte';
   import { resolveLocation, tzFromLatLon, type LocationFix } from './lib/location';
   import { reverseGeocode, type PlaceHit, type PlaceName } from './lib/geocode';
@@ -133,6 +134,17 @@
     {/if}
 
     <WorldMap {at} userLon={fix.lon} userLat={fix.lat} />
+
+    <SolarDetail
+      {at}
+      lat={fix.lat}
+      lon={fix.lon}
+      {zone}
+      city={place?.city}
+      region={place?.region}
+      country={place?.country}
+      countryCode={place?.countryCode}
+    />
 
     <Leaderboard {at} {zones} />
 

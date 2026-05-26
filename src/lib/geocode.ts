@@ -4,6 +4,7 @@ export interface PlaceName {
   city?: string;
   region?: string;
   country?: string;
+  countryCode?: string;
   display?: string;
 }
 
@@ -13,6 +14,7 @@ export interface PlaceHit {
   display: string;
   name: string;
   country?: string;
+  countryCode?: string;
   region?: string;
 }
 
@@ -33,6 +35,7 @@ export async function reverseGeocode(
     city: a.city ?? a.town ?? a.village ?? a.hamlet ?? a.municipality,
     region: a.state ?? a.region,
     country: a.country,
+    countryCode: typeof a.country_code === 'string' ? a.country_code : undefined,
     display: j.display_name,
   };
 }
@@ -77,6 +80,7 @@ export async function searchCity(
       name,
       region: a.state ?? a.region,
       country: a.country,
+      countryCode: typeof a.country_code === 'string' ? a.country_code : undefined,
     };
   });
 }
