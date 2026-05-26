@@ -116,6 +116,7 @@
     </div>
   {:else if fix && zone}
     <SolarClock
+      {at}
       lat={fix.lat}
       lon={fix.lon}
       {zone}

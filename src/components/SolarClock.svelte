@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
   import { DateTime } from 'luxon';
   import {
     apparentSolarTime,
@@ -15,25 +14,17 @@
   export let lon: number;
   export let zone: string;
   export let placeName: string | undefined = undefined;
+  export let at: Date;
 
-  let now = new Date();
-  let timer: ReturnType<typeof setInterval>;
-
-  onMount(() => {
-    timer = setInterval(() => (now = new Date()), 1000);
-  });
-  onDestroy(() => clearInterval(timer));
-
-  $: civilDt = DateTime.fromJSDate(now, { zone });
+  $: civilDt = DateTime.fromJSDate(at, { zone });
   $: civilStr = civilDt.toFormat('HH:mm:ss');
   $: civilZoneAbbr = civilDt.toFormat('ZZZZ');
-  $: civilOffset = civilOffsetHours(zone, now);
-  $: solarDate = apparentSolarTime(now, lon);
+  $: civilOffset = civilOffsetHours(zone, at);
+  $: solarDate = apparentSolarTime(at, lon);
   $: solarStr = formatAsClock(solarDate);
   $: lmt = lmtOffsetHours(lon);
-  $: eot = equationOfTimeMinutes(now);
-  $: deltaMin = clockMinusSunMinutes(zone, lon, now);
-  $: ahead = deltaMin >= 0;
+  $: eot = equationOfTimeMinutes(at);
+  $: deltaMin = clockMinusSunMinutes(zone, lon, at);
 
   function fmtOffset(h: number): string {
     const sign = h >= 0 ? '+' : '−';
