@@ -38,3 +38,7 @@ ipapi.co (fallback).
 ## License
 
 [The Unlicense](LICENSE) — public domain.
+
+## Warning 
+
+Vibe coded, take the results with a grian of salt
