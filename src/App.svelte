@@ -6,6 +6,7 @@
   import Leaderboard from './components/Leaderboard.svelte';
   import SolarDetail from './components/SolarDetail.svelte';
   import CitySearch from './components/CitySearch.svelte';
+  import ConsentBanner from './components/ConsentBanner.svelte';
   import { resolveLocation, tzFromLatLon, type LocationFix } from './lib/location';
   import { reverseGeocode, type PlaceHit, type PlaceName } from './lib/geocode';
 
@@ -86,6 +87,8 @@
     return parts.join(', ');
   })();
 </script>
+
+<ConsentBanner />
 
 <main>
   <nav class="topnav">
