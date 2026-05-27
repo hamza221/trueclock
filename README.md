@@ -41,4 +41,4 @@ ipapi.co (fallback).
 
 ## Warning 
 
-Vibe coded, take the results with a grian of salt
+Vibe coded, take the results with a grain of salt
